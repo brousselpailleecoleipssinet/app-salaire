@@ -1,0 +1,8 @@
+---
+
+root_mariadb_password: "root"
+mysql_user: "bastien"
+mysql_password: ""
+mysql_dbname: "dbbastienform"
+db_host: "172.24.176.217"
+webserver_host: "1172.24.181.231"

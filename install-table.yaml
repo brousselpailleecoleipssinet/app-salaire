@@ -1,0 +1,117 @@
+- hosts: webservers
+
+  vars_files:
+    - Role/vars/main.yml
+    - ./main.yaml
+
+  become: yes
+  handlers:
+     - name: restart_apache
+       systemd:
+         name: httpd
+         state: restarted
+
+       notify:
+        - restart_apache
+
+  tasks:
+  - name: install apache et php et php-mysql
+    yum:
+       name: ['httpd', 'php', 'php-mysql']
+       state: present
+    loop:
+      "{{ pkg }}"
+
+
+  - name: demarrage et activation du service apache2
+    systemd:
+      name: httpd
+      enabled: yes
+      state: started
+
+  - name: arret et desactivation du service firewalld
+    systemd:
+      name: firewalld
+      enabled: no
+      state: stopped
+
+  - name: modification du port 80 vers 8080 du serveur apache
+    lineinfile:
+     path: /etc/httpd/conf/httpd.conf
+     regexp: '^Listen '
+     insertafter: '^#Listen '
+     line: 'Listen 8080'
+  - name: Copier le rep APP dans /var/www/html/
+    copy:
+     src: app/
+     dest: /var/www/html/
+  - name: Ajout de fichier php de la configuration d'acces a la DB
+    template:
+      src: "db-config.php.j2"
+      dest: /var/www/html/db-config.php
+
+
+
+
+
+
+
+
+
+## SERVEUR DE BASE DE DONNÉES
+
+- hosts: db_host
+
+  become: yes
+
+  vars_files:
+    - main.yaml
+
+  tasks:
+  - name: ajout du depots epel-release
+    yum:
+     name: epel-release
+     state: present
+
+  - name: Installation de Mysql et python2-PyMySQL
+    yum:
+     name:
+      - mariadb-server
+      - python2-PyMySQL
+     state: present
+  - name: Start and activation du serveur mariadb-server
+    systemd:
+      name: mariadb
+      state: started
+      enabled: yes
+
+  - name: Creation du fichier client mariadb
+    copy:
+     dest: /root/.my.cnf
+     content: |
+      [client]
+      user=root
+      password=""
+
+  - name: Upload sql table config
+    template:
+     src: table.sql.j2
+     dest: /tmp/table.sql
+  - name: Insert table dans mariadb
+    mysql_db:
+     name: "{{ mysql_dbname }}"
+     state: present
+     login_user: root
+     login_password: ""
+     state: import
+     target: /tmp/table.sql
+
+  - name: Create "{{ mysql_user }}" avec les privilege sur la db "{{ mysql_dbname }}"
+    mysql_user:
+     login_user: root
+     login_password: ""
+     name: "{{ mysql_user }}"
+     password: "{{ mysql_password }}"
+     priv: "{{ mysql_dbname }}.*:ALL"
+     host: "{{ webserver_host }}"
+     state: present
