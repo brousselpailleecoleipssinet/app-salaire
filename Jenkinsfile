@@ -6,7 +6,7 @@ node{
  ansiblePlaybook (
  colorized: true, 
  become: true, 
- playbook: 'install-able.yaml',
+ playbook: 'install-table.yaml',
  inventory: 'hosts.yaml'
  )
  }
