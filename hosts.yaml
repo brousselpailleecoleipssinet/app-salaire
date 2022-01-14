@@ -1,0 +1,6 @@
+[webservers]
+web.bastien.form
+db.bastien.form
+
+[db_hosts]
+db.bastien.form
